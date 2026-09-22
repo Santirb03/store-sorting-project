@@ -1,0 +1,11 @@
+id,nombre,categoria,precio,stock
+1,Laptop Lenovo,Electronica,15999,8
+2,Mouse Logitech,Electronica,599,25
+3,Silla Gamer,Muebles,4299,6
+4,Teclado Mecanico,Electronica,1399,15
+5,Monitor Samsung,Electronica,5499,10
+6,Escritorio,Muebles,3499,4
+7,Audifonos Sony,Electronica,2499,18
+8,Lampara LED,Hogar,799,30
+9,Mochila,Accesorios,899,20
+10,Cafetera,Hogar,1899,12
