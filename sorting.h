@@ -6,24 +6,52 @@
 
 using namespace std;
 
+bool comparar(
+    const Producto &a,
+    const Producto &b,
+    int criterio)
+{
+    if (criterio == 1)
+    {
+        return a.getPrecio() <= b.getPrecio();
+    }
+
+    if (criterio == 2)
+    {
+        return a.getNombre() <= b.getNombre();
+    }
+
+    if (criterio == 3)
+    {
+        return a.getStock() <= b.getStock();
+    }
+
+    if (criterio == 4)
+    {
+        return a.getCategoria() <= b.getCategoria();
+    }
+
+    return false;
+}
+
 void merge(
     vector<Producto> &productos,
     int izquierda,
     int medio,
-    int derecha)
+    int derecha,
+    int criterio)
 {
-
-    vector<Producto> izquierdaVector;
-    vector<Producto> derechaVector;
+    vector<Producto> mitadIzquierda;
+    vector<Producto> mitadDerecha;
 
     for (int i = izquierda; i <= medio; i++)
     {
-        izquierdaVector.push_back(productos[i]);
+        mitadIzquierda.push_back(productos[i]);
     }
 
     for (int i = medio + 1; i <= derecha; i++)
     {
-        derechaVector.push_back(productos[i]);
+        mitadDerecha.push_back(productos[i]);
     }
 
     int i = 0;
@@ -31,36 +59,37 @@ void merge(
     int k = izquierda;
 
     while (
-        i < izquierdaVector.size() &&
-        j < derechaVector.size())
+        i < static_cast<int>(mitadIzquierda.size()) &&
+        j < static_cast<int>(mitadDerecha.size()))
     {
-
         if (
-            izquierdaVector[i].getPrecio() <=
-            derechaVector[j].getPrecio())
+            comparar(
+                mitadIzquierda[i],
+                mitadDerecha[j],
+                criterio))
         {
-            productos[k] = izquierdaVector[i];
+            productos[k] = mitadIzquierda[i];
             i++;
         }
         else
         {
-            productos[k] = derechaVector[j];
+            productos[k] = mitadDerecha[j];
             j++;
         }
 
         k++;
     }
 
-    while (i < izquierdaVector.size())
+    while (i < static_cast<int>(mitadIzquierda.size()))
     {
-        productos[k] = izquierdaVector[i];
+        productos[k] = mitadIzquierda[i];
         i++;
         k++;
     }
 
-    while (j < derechaVector.size())
+    while (j < static_cast<int>(mitadDerecha.size()))
     {
-        productos[k] = derechaVector[j];
+        productos[k] = mitadDerecha[j];
         j++;
         k++;
     }
@@ -69,20 +98,35 @@ void merge(
 void mergeSort(
     vector<Producto> &productos,
     int izquierda,
-    int derecha)
+    int derecha,
+    int criterio)
 {
-
     if (izquierda >= derecha)
     {
         return;
     }
 
-    int medio = izquierda + (derecha - izquierda) / 2;
+    int medio =
+        izquierda + (derecha - izquierda) / 2;
 
-    mergeSort(productos, izquierda, medio);
-    mergeSort(productos, medio + 1, derecha);
+    mergeSort(
+        productos,
+        izquierda,
+        medio,
+        criterio);
 
-    merge(productos, izquierda, medio, derecha);
+    mergeSort(
+        productos,
+        medio + 1,
+        derecha,
+        criterio);
+
+    merge(
+        productos,
+        izquierda,
+        medio,
+        derecha,
+        criterio);
 }
 
 #endif

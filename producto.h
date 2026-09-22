@@ -21,12 +21,16 @@ public:
         id = 0;
         nombre = "";
         categoria = "";
-        precio = 0;
+        precio = 0.0;
         stock = 0;
     }
 
-    Producto(int _id, string _nombre, string _categoria,
-             double _precio, int _stock)
+    Producto(
+        int _id,
+        string _nombre,
+        string _categoria,
+        double _precio,
+        int _stock)
     {
         id = _id;
         nombre = _nombre;
@@ -62,11 +66,12 @@ public:
 
     void mostrar() const
     {
-        cout << id << " | "
-             << nombre << " | "
-             << categoria << " | $"
-             << precio << " | Stock: "
-             << stock << endl;
+        cout
+            << id << " | "
+            << nombre << " | "
+            << categoria << " | $"
+            << precio << " | Stock: "
+            << stock << endl;
     }
 };
 

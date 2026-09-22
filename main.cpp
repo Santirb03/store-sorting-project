@@ -2,22 +2,26 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <string>
 
 #include "producto.h"
 #include "sorting.h"
 
 using namespace std;
 
-vector<Producto> cargarProductos(string nombreArchivo)
+// Carga los productos desde un archivo CSV.
+vector<Producto> cargarProductos(
+    const string &nombreArchivo)
 {
-
     vector<Producto> productos;
 
     ifstream archivo(nombreArchivo);
 
     if (!archivo.is_open())
     {
-        cout << "Error al abrir el archivo." << endl;
+        cout << "Error: no se pudo abrir el archivo "
+             << nombreArchivo << endl;
+
         return productos;
     }
 
@@ -27,7 +31,6 @@ vector<Producto> cargarProductos(string nombreArchivo)
 
     while (getline(archivo, linea))
     {
-
         stringstream ss(linea);
 
         string idStr;
@@ -61,37 +64,136 @@ vector<Producto> cargarProductos(string nombreArchivo)
     return productos;
 }
 
+void mostrarProductos(
+    const vector<Producto> &productos)
+{
+    cout << endl;
+
+    cout << "============================================================"
+         << endl;
+
+    cout
+        << "ID | Nombre | Categoria | Precio | Stock"
+        << endl;
+
+    cout << "============================================================"
+         << endl;
+
+    for (const Producto &producto : productos)
+    {
+        producto.mostrar();
+    }
+
+    cout << "============================================================"
+         << endl;
+}
+
+// Ordena los productos usando Merge Sort.
+void ordenarProductos(
+    vector<Producto> &productos,
+    int criterio)
+{
+    if (!productos.empty())
+    {
+        mergeSort(
+            productos,
+            0,
+            static_cast<int>(productos.size()) - 1,
+            criterio);
+    }
+}
+
 int main()
 {
-
-    // 1. Cargar productos desde el CSV
     vector<Producto> productos =
         cargarProductos("productos.csv");
 
-    cout << "Productos cargados: "
-         << productos.size() << endl;
-
-    // 2. Mostrar productos antes de ordenar
-    cout << "\nProductos originales:\n";
-
-    for (const Producto &producto : productos)
+    if (productos.empty())
     {
-        producto.mostrar();
+        cout << "No se cargaron productos." << endl;
+        return 1;
     }
 
-    // 3. Ordenar los productos por precio
-    mergeSort(
-        productos,
-        0,
-        productos.size() - 1);
+    int opcion = 0;
 
-    // 4. Mostrar productos ya ordenados
-    cout << "\nProductos ordenados por precio:\n";
-
-    for (const Producto &producto : productos)
+    do
     {
-        producto.mostrar();
-    }
+        cout << endl;
+        cout << "======================================" << endl;
+        cout << "     SISTEMA DE PRODUCTOS" << endl;
+        cout << "======================================" << endl;
+
+        cout << "1. Mostrar productos" << endl;
+        cout << "2. Ordenar por precio" << endl;
+        cout << "3. Ordenar por nombre" << endl;
+        cout << "4. Ordenar por stock" << endl;
+        cout << "5. Ordenar por categoria" << endl;
+        cout << "6. Salir" << endl;
+
+        cout << endl;
+        cout << "Selecciona una opcion: ";
+
+        cin >> opcion;
+
+        switch (opcion)
+        {
+
+        case 1:
+            mostrarProductos(productos);
+            break;
+
+        case 2:
+            ordenarProductos(productos, 1);
+
+            cout << endl;
+            cout << "Productos ordenados por precio:"
+                 << endl;
+
+            mostrarProductos(productos);
+            break;
+
+        case 3:
+            ordenarProductos(productos, 2);
+
+            cout << endl;
+            cout << "Productos ordenados por nombre:"
+                 << endl;
+
+            mostrarProductos(productos);
+            break;
+
+        case 4:
+            ordenarProductos(productos, 3);
+
+            cout << endl;
+            cout << "Productos ordenados por stock:"
+                 << endl;
+
+            mostrarProductos(productos);
+            break;
+
+        case 5:
+            ordenarProductos(productos, 4);
+
+            cout << endl;
+            cout << "Productos ordenados por categoria:"
+                 << endl;
+
+            mostrarProductos(productos);
+            break;
+
+        case 6:
+            cout << endl;
+            cout << "Saliendo del programa..." << endl;
+            break;
+
+        default:
+            cout << endl;
+            cout << "Opcion invalida. Intenta nuevamente."
+                 << endl;
+        }
+
+    } while (opcion != 6);
 
     return 0;
 }
