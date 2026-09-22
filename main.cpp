@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "producto.h"
+#include "sorting.h"
 
 using namespace std;
 
@@ -63,11 +64,29 @@ vector<Producto> cargarProductos(string nombreArchivo)
 int main()
 {
 
+    // 1. Cargar productos desde el CSV
     vector<Producto> productos =
         cargarProductos("productos.csv");
 
     cout << "Productos cargados: "
          << productos.size() << endl;
+
+    // 2. Mostrar productos antes de ordenar
+    cout << "\nProductos originales:\n";
+
+    for (const Producto &producto : productos)
+    {
+        producto.mostrar();
+    }
+
+    // 3. Ordenar los productos por precio
+    mergeSort(
+        productos,
+        0,
+        productos.size() - 1);
+
+    // 4. Mostrar productos ya ordenados
+    cout << "\nProductos ordenados por precio:\n";
 
     for (const Producto &producto : productos)
     {
