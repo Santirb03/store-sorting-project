@@ -209,6 +209,11 @@ void ordenarProductos(
     }
 }
 
+// Busqueda secuencial por ID.
+// Mejor caso: O(1)
+// Peor caso: O(n)
+// Espacio auxiliar: O(1)
+
 int buscarProducto(
     const vector<Producto> &productos,
     int id)
@@ -225,6 +230,11 @@ int buscarProducto(
 
     return -1;
 }
+
+// Agrega un producto despues de verificar su ID.
+// Tiempo: O(n), por la busqueda de duplicados.
+// Espacio adicional: O(1) amortizado,
+// sin contar el crecimiento del inventario.
 
 void agregarProducto(vector<Producto> &productos)
 {
@@ -274,6 +284,10 @@ void agregarProducto(vector<Producto> &productos)
 
     cout << "Producto agregado correctamente.\n";
 }
+
+// Actualiza un producto existente por ID.
+// Tiempo: O(n), debido a la busqueda secuencial.
+// Espacio auxiliar: O(1), con campos acotados.
 
 void actualizarProducto(vector<Producto> &productos)
 {
@@ -333,6 +347,10 @@ void actualizarProducto(vector<Producto> &productos)
 
     cout << "Producto actualizado correctamente.\n";
 }
+
+// Elimina un producto del vector.
+// Tiempo: O(n), por la busqueda y el desplazamiento.
+// Espacio auxiliar: O(1).
 
 void eliminarProducto(vector<Producto> &productos)
 {

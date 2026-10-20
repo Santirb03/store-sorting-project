@@ -56,3 +56,21 @@ Para compilar el programa:
 
 ```bash
 g++ main.cpp -o main
+
+## Analisis de complejidad
+
+El proyecto incluye un analisis de complejidad
+temporal y espacial de sus algoritmos,
+estructuras de datos y operaciones de inventario.
+
+El analisis incluye:
+
+- Merge Sort y su recurrencia.
+- Operaciones sobre std::vector.
+- Busqueda, insercion, actualizacion y eliminacion.
+- Lectura y escritura de archivos CSV.
+- Validacion de entradas.
+- Complejidad global por escenario de ejecucion.
+
+Consulta [COMPLEXITY.md](COMPLEXITY.md)
+para ver el analisis detallado.
