@@ -3,9 +3,12 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <filesystem>
+#include <iomanip>
 
 #include "producto.h"
 #include "sorting.h"
+#include "input_utils.h"
 
 using namespace std;
 
@@ -68,35 +71,100 @@ bool guardarProductos(
     const vector<Producto> &productos,
     const string &nombreArchivo)
 {
-    ofstream archivo(nombreArchivo);
+    namespace fs = std::filesystem;
 
-    if (!archivo.is_open())
+    const fs::path destino(nombreArchivo);
+    const fs::path temporal = destino.string() + ".tmp";
+    const fs::path respaldo = destino.string() + ".bak";
+
+    // Evitar sobreescribir archivos temporales ajenos.
+    std::error_code ec;
+
+    if (fs::exists(temporal, ec) ||
+        fs::exists(respaldo, ec) || ec)
     {
-        cout << "Error: no se pudo abrir el archivo "
-             << nombreArchivo << endl;
+        cerr << "Error: existe un archivo temporal "
+             << "o de respaldo pendiente.\n";
+        return false;
+    }
+
+    // 1. Escribir a un archivo temporal.
+    {
+        ofstream archivo(temporal);
+
+        if (!archivo.is_open())
+        {
+            cerr << "No se pudo crear el temporal.\n";
+            return false;
+        }
+
+        archivo << "id,nombre,categoria,precio,stock\n";
+        archivo << setprecision(17);
+
+        for (const Producto &producto : productos)
+        {
+            archivo << producto.getId() << ","
+                    << producto.getNombre() << ","
+                    << producto.getCategoria() << ","
+                    << producto.getPrecio() << ","
+                    << producto.getStock() << "\n";
+        }
+
+        archivo.close();
+
+        if (archivo.fail())
+        {
+            cerr << "Error al escribir el temporal.\n";
+            return false;
+        }
+    }
+
+    // 2. Respaldar el archivo original.
+    bool habiaOriginal = fs::exists(destino, ec);
+
+    if (ec)
+        return false;
+
+    if (habiaOriginal)
+    {
+        fs::rename(destino, respaldo, ec);
+
+        if (ec)
+        {
+            cerr << "No se pudo respaldar el CSV.\n";
+            return false;
+        }
+    }
+
+    // 3. Colocar el nuevo CSV.
+    fs::rename(temporal, destino, ec);
+
+    if (ec)
+    {
+        cerr << "Error al instalar el nuevo CSV.\n";
+
+        if (habiaOriginal)
+        {
+            std::error_code errorRestauracion;
+            fs::rename(
+                respaldo, destino, errorRestauracion);
+
+            if (errorRestauracion)
+                cerr << "No se pudo restaurar el "
+                     << "respaldo: " << respaldo << "\n";
+        }
 
         return false;
     }
 
-    // Escribir encabezados del CSV
-    archivo << "id,nombre,categoria,precio,stock\n";
-
-    // Recorrer y escribir todos los productos
-    for (const Producto &producto : productos)
+    // 4. Borrar respaldo tras instalar el nuevo.
+    if (habiaOriginal)
     {
-        archivo << producto.getId() << ","
-                << producto.getNombre() << ","
-                << producto.getCategoria() << ","
-                << producto.getPrecio() << ","
-                << producto.getStock() << "\n";
-    }
+        fs::remove(respaldo, ec);
 
-    archivo.close();
-
-    if (archivo.fail())
-    {
-        cout << "Error al guardar los productos.\n";
-        return false;
+        if (ec)
+            cerr << "Aviso: el respaldo permanece "
+                 << "en " << respaldo << "\n";
     }
 
     return true;
@@ -161,51 +229,48 @@ int buscarProducto(
 void agregarProducto(vector<Producto> &productos)
 {
     int id;
-    string nombre, categoria;
-    double precio;
     int stock;
+    double precio;
+    string nombre, categoria;
 
     cout << "\n--- AGREGAR PRODUCTO ---\n";
 
-    cout << "ID: ";
-    cin >> id;
-
-    if (id <= 0 || buscarProducto(productos, id) != -1)
+    if (!InputUtils::leerEntero("ID: ", id) ||
+        id <= 0)
     {
-        cout << "ID invalido o duplicado.\n";
+        cout << "Error: el ID debe ser positivo.\n";
         return;
     }
 
-    cout << "Nombre: ";
-    cin >> ws;
-    getline(cin, nombre);
-
-    cout << "Categoria: ";
-    getline(cin, categoria);
-
-    if (nombre.empty() || categoria.empty() ||
-        nombre.find(',') != string::npos ||
-        categoria.find(',') != string::npos)
+    if (buscarProducto(productos, id) != -1)
     {
-        cout << "Nombre o categoria invalida.\n";
+        cout << "Error: ese ID ya existe.\n";
         return;
     }
 
-    cout << "Precio: ";
-    cin >> precio;
-
-    cout << "Stock: ";
-    cin >> stock;
-
-    if (precio < 0 || stock < 0)
+    if (!InputUtils::leerTextoCSV("Nombre: ", nombre) ||
+        !InputUtils::leerTextoCSV("Categoria: ", categoria))
     {
-        cout << "Precio o stock invalido.\n";
+        cout << "Error: nombre o categoria invalida.\n";
         return;
     }
 
-    Producto nuevo(id, nombre, categoria, precio, stock);
+    if (!InputUtils::leerDecimal("Precio: ", precio) ||
+        precio < 0)
+    {
+        cout << "Error: precio invalido.\n";
+        return;
+    }
 
-    productos.push_back(nuevo);
+    if (!InputUtils::leerEntero("Stock: ", stock) ||
+        stock < 0)
+    {
+        cout << "Error: stock invalido.\n";
+        return;
+    }
+
+    productos.emplace_back(
+        id, nombre, categoria, precio, stock);
 
     cout << "Producto agregado correctamente.\n";
 }
@@ -215,8 +280,13 @@ void actualizarProducto(vector<Producto> &productos)
     int id;
 
     cout << "\n--- ACTUALIZAR PRODUCTO ---\n";
-    cout << "ID del producto: ";
-    cin >> id;
+
+    if (!InputUtils::leerEntero(
+            "ID del producto: ", id))
+    {
+        cout << "ID invalido.\n";
+        return;
+    }
 
     int posicion = buscarProducto(productos, id);
 
@@ -233,38 +303,35 @@ void actualizarProducto(vector<Producto> &productos)
     double precio;
     int stock;
 
-    cout << "Nuevo nombre: ";
-    cin >> ws;
-    getline(cin, nombre);
-
-    cout << "Nueva categoria: ";
-    getline(cin, categoria);
-
-    if (nombre.empty() || categoria.empty() ||
-        nombre.find(',') != string::npos ||
-        categoria.find(',') != string::npos)
+    if (!InputUtils::leerTextoCSV(
+            "Nuevo nombre: ", nombre) ||
+        !InputUtils::leerTextoCSV(
+            "Nueva categoria: ", categoria))
     {
         cout << "Nombre o categoria invalida.\n";
         return;
     }
 
-    cout << "Nuevo precio: ";
-    cin >> precio;
-
-    cout << "Nuevo stock: ";
-    cin >> stock;
-
-    if (precio < 0 || stock < 0)
+    if (!InputUtils::leerDecimal(
+            "Nuevo precio: ", precio) ||
+        precio < 0)
     {
-        cout << "Datos invalidos.\n";
+        cout << "Precio invalido.\n";
         return;
     }
 
-    // Conservamos el ID original.
+    if (!InputUtils::leerEntero(
+            "Nuevo stock: ", stock) ||
+        stock < 0)
+    {
+        cout << "Stock invalido.\n";
+        return;
+    }
+
     productos[posicion] = Producto(
         id, nombre, categoria, precio, stock);
 
-    cout << "Producto actualizado.\n";
+    cout << "Producto actualizado correctamente.\n";
 }
 
 void eliminarProducto(vector<Producto> &productos)
@@ -272,8 +339,13 @@ void eliminarProducto(vector<Producto> &productos)
     int id;
 
     cout << "\n--- ELIMINAR PRODUCTO ---\n";
-    cout << "ID a eliminar: ";
-    cin >> id;
+
+    if (!InputUtils::leerEntero(
+            "ID a eliminar: ", id))
+    {
+        cout << "ID invalido.\n";
+        return;
+    }
 
     int posicion = buscarProducto(productos, id);
 
@@ -286,18 +358,24 @@ void eliminarProducto(vector<Producto> &productos)
     cout << "Producto encontrado:\n";
     productos[posicion].mostrar();
 
-    char confirmar;
+    string respuesta;
 
     cout << "Confirmar eliminacion (s/n): ";
-    cin >> confirmar;
 
-    if (confirmar != 's' && confirmar != 'S')
+    if (!getline(cin, respuesta))
+    {
+        cout << "No se pudo leer la respuesta.\n";
+        return;
+    }
+
+    if (respuesta != "s" && respuesta != "S")
     {
         cout << "Operacion cancelada.\n";
         return;
     }
 
-    productos.erase(productos.begin() + posicion);
+    productos.erase(
+        productos.begin() + posicion);
 
     cout << "Producto eliminado correctamente.\n";
 }
@@ -335,9 +413,18 @@ int main()
         cout << "11. Salir" << endl;
 
         cout << endl;
-        cout << "Selecciona una opcion: ";
+        if (!InputUtils::leerEntero(
+                "Selecciona una opcion: ", opcion))
+        {
+            if (cin.eof())
+            {
+                cout << "\nFin de la entrada.\n";
+                break;
+            }
 
-        cin >> opcion;
+            cout << "Error: introduce un numero valido.\n";
+            continue;
+        }
 
         switch (opcion)
         {
@@ -410,8 +497,12 @@ int main()
         {
             int id;
 
-            cout << "\nID del producto: ";
-            cin >> id;
+            if (!InputUtils::leerEntero(
+                    "\nID del producto: ", id))
+            {
+                cout << "ID invalido.\n";
+                break;
+            }
 
             int posicion = buscarProducto(productos, id);
 
