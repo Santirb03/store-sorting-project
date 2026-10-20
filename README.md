@@ -94,3 +94,27 @@ alternativas consideradas.
 
 Consulta [DESIGN_DECISIONS.md](DESIGN_DECISIONS.md)
 para ver el analisis completo.
+
+## Pruebas del sistema
+
+El proyecto incluye pruebas automatizadas
+para verificar:
+
+- Ordenamiento por precio.
+- Ordenamiento por stock.
+- Ordenamiento por nombre y categoria.
+- Casos limite de Merge Sort.
+- Insercion de productos.
+- Busqueda por ID.
+- Actualizacion de productos.
+- Eliminacion de productos.
+- Rechazo de IDs duplicados y datos invalidos.
+
+Tambien se realizaron pruebas manuales de
+lectura y escritura de archivos CSV.
+
+### Ejecutar las pruebas
+
+```bash
+g++ -std=c++17 tests.cpp producto.cpp inventory.cpp -o tests
+./tests

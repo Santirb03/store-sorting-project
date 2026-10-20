@@ -5,10 +5,13 @@
 #include <string>
 #include <filesystem>
 #include <iomanip>
+#include <stdexcept>
+#include <cmath>
 
 #include "producto.h"
 #include "sorting.h"
 #include "input_utils.h"
+#include "inventory.h"
 
 using namespace std;
 
@@ -48,18 +51,64 @@ vector<Producto> cargarProductos(
         getline(ss, precioStr, ',');
         getline(ss, stockStr, ',');
 
-        int id = stoi(idStr);
-        double precio = stod(precioStr);
-        int stock = stoi(stockStr);
+        try
+        {
+            size_t finId = 0;
+            size_t finPrecio = 0;
+            size_t finStock = 0;
 
-        Producto producto(
-            id,
-            nombre,
-            categoria,
-            precio,
-            stock);
+            int id = stoi(idStr, &finId);
+            double precio = stod(precioStr, &finPrecio);
+            int stock = stoi(stockStr, &finStock);
 
-        productos.push_back(producto);
+            // Comprobar que las conversiones fueron completas.
+            if (finId != idStr.size() ||
+                finPrecio != precioStr.size() ||
+                finStock != stockStr.size() ||
+                id <= 0 ||
+                !std::isfinite(precio) ||
+                precio < 0 ||
+                stock < 0 ||
+                nombre.empty() ||
+                categoria.empty())
+            {
+                cerr << "Fila CSV invalida: "
+                     << linea << endl;
+                continue;
+            }
+
+            // Evitar productos duplicados en el CSV.
+            bool duplicado = false;
+
+            for (const Producto &existente : productos)
+            {
+                if (existente.getId() == id)
+                {
+                    duplicado = true;
+                    break;
+                }
+            }
+
+            if (duplicado)
+            {
+                cerr << "ID duplicado en CSV: "
+                     << id << endl;
+                continue;
+            }
+
+            productos.emplace_back(
+                id, nombre, categoria, precio, stock);
+        }
+        catch (const std::invalid_argument &)
+        {
+            cerr << "Datos numericos invalidos: "
+                 << linea << endl;
+        }
+        catch (const std::out_of_range &)
+        {
+            cerr << "Numero fuera de rango: "
+                 << linea << endl;
+        }
     }
 
     archivo.close();
@@ -214,23 +263,6 @@ void ordenarProductos(
 // Peor caso: O(n)
 // Espacio auxiliar: O(1)
 
-int buscarProducto(
-    const vector<Producto> &productos,
-    int id)
-{
-    for (int i = 0;
-         i < static_cast<int>(productos.size());
-         i++)
-    {
-        if (productos[i].getId() == id)
-        {
-            return i;
-        }
-    }
-
-    return -1;
-}
-
 // Agrega un producto despues de verificar su ID.
 // Tiempo: O(n), por la busqueda de duplicados.
 // Espacio adicional: O(1) amortizado,
@@ -279,8 +311,13 @@ void agregarProducto(vector<Producto> &productos)
         return;
     }
 
-    productos.emplace_back(
-        id, nombre, categoria, precio, stock);
+    Producto nuevo(id, nombre, categoria, precio, stock);
+
+    if (!agregarProductoInventario(productos, nuevo))
+    {
+        cout << "No se pudo agregar el producto.\n";
+        return;
+    }
 
     cout << "Producto agregado correctamente.\n";
 }
@@ -342,8 +379,15 @@ void actualizarProducto(vector<Producto> &productos)
         return;
     }
 
-    productos[posicion] = Producto(
+    Producto actualizado(
         id, nombre, categoria, precio, stock);
+
+    if (!actualizarProductoInventario(
+            productos, actualizado))
+    {
+        cout << "No se pudo actualizar el producto.\n";
+        return;
+    }
 
     cout << "Producto actualizado correctamente.\n";
 }
@@ -392,8 +436,11 @@ void eliminarProducto(vector<Producto> &productos)
         return;
     }
 
-    productos.erase(
-        productos.begin() + posicion);
+    if (!eliminarProductoInventario(productos, id))
+    {
+        cout << "No se pudo eliminar el producto.\n";
+        return;
+    }
 
     cout << "Producto eliminado correctamente.\n";
 }
