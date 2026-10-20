@@ -141,6 +141,167 @@ void ordenarProductos(
     }
 }
 
+int buscarProducto(
+    const vector<Producto> &productos,
+    int id)
+{
+    for (int i = 0;
+         i < static_cast<int>(productos.size());
+         i++)
+    {
+        if (productos[i].getId() == id)
+        {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+void agregarProducto(vector<Producto> &productos)
+{
+    int id;
+    string nombre, categoria;
+    double precio;
+    int stock;
+
+    cout << "\n--- AGREGAR PRODUCTO ---\n";
+
+    cout << "ID: ";
+    cin >> id;
+
+    if (id <= 0 || buscarProducto(productos, id) != -1)
+    {
+        cout << "ID invalido o duplicado.\n";
+        return;
+    }
+
+    cout << "Nombre: ";
+    cin >> ws;
+    getline(cin, nombre);
+
+    cout << "Categoria: ";
+    getline(cin, categoria);
+
+    if (nombre.empty() || categoria.empty() ||
+        nombre.find(',') != string::npos ||
+        categoria.find(',') != string::npos)
+    {
+        cout << "Nombre o categoria invalida.\n";
+        return;
+    }
+
+    cout << "Precio: ";
+    cin >> precio;
+
+    cout << "Stock: ";
+    cin >> stock;
+
+    if (precio < 0 || stock < 0)
+    {
+        cout << "Precio o stock invalido.\n";
+        return;
+    }
+
+    Producto nuevo(id, nombre, categoria, precio, stock);
+
+    productos.push_back(nuevo);
+
+    cout << "Producto agregado correctamente.\n";
+}
+
+void actualizarProducto(vector<Producto> &productos)
+{
+    int id;
+
+    cout << "\n--- ACTUALIZAR PRODUCTO ---\n";
+    cout << "ID del producto: ";
+    cin >> id;
+
+    int posicion = buscarProducto(productos, id);
+
+    if (posicion == -1)
+    {
+        cout << "Producto no encontrado.\n";
+        return;
+    }
+
+    cout << "Producto actual:\n";
+    productos[posicion].mostrar();
+
+    string nombre, categoria;
+    double precio;
+    int stock;
+
+    cout << "Nuevo nombre: ";
+    cin >> ws;
+    getline(cin, nombre);
+
+    cout << "Nueva categoria: ";
+    getline(cin, categoria);
+
+    if (nombre.empty() || categoria.empty() ||
+        nombre.find(',') != string::npos ||
+        categoria.find(',') != string::npos)
+    {
+        cout << "Nombre o categoria invalida.\n";
+        return;
+    }
+
+    cout << "Nuevo precio: ";
+    cin >> precio;
+
+    cout << "Nuevo stock: ";
+    cin >> stock;
+
+    if (precio < 0 || stock < 0)
+    {
+        cout << "Datos invalidos.\n";
+        return;
+    }
+
+    // Conservamos el ID original.
+    productos[posicion] = Producto(
+        id, nombre, categoria, precio, stock);
+
+    cout << "Producto actualizado.\n";
+}
+
+void eliminarProducto(vector<Producto> &productos)
+{
+    int id;
+
+    cout << "\n--- ELIMINAR PRODUCTO ---\n";
+    cout << "ID a eliminar: ";
+    cin >> id;
+
+    int posicion = buscarProducto(productos, id);
+
+    if (posicion == -1)
+    {
+        cout << "Producto no encontrado.\n";
+        return;
+    }
+
+    cout << "Producto encontrado:\n";
+    productos[posicion].mostrar();
+
+    char confirmar;
+
+    cout << "Confirmar eliminacion (s/n): ";
+    cin >> confirmar;
+
+    if (confirmar != 's' && confirmar != 'S')
+    {
+        cout << "Operacion cancelada.\n";
+        return;
+    }
+
+    productos.erase(productos.begin() + posicion);
+
+    cout << "Producto eliminado correctamente.\n";
+}
+
 int main()
 {
     vector<Producto> productos =
@@ -167,7 +328,11 @@ int main()
         cout << "4. Ordenar por stock" << endl;
         cout << "5. Ordenar por categoria" << endl;
         cout << "6. Guardar productos en CSV" << endl;
-        cout << "7. Salir" << endl;
+        cout << "7. Agregar producto" << endl;
+        cout << "8. Buscar producto por ID" << endl;
+        cout << "9. Actualizar producto" << endl;
+        cout << "10. Eliminar producto" << endl;
+        cout << "11. Salir" << endl;
 
         cout << endl;
         cout << "Selecciona una opcion: ";
@@ -238,8 +403,41 @@ int main()
             break;
 
         case 7:
-            cout << endl;
-            cout << "Saliendo del programa..." << endl;
+            agregarProducto(productos);
+            break;
+
+        case 8:
+        {
+            int id;
+
+            cout << "\nID del producto: ";
+            cin >> id;
+
+            int posicion = buscarProducto(productos, id);
+
+            if (posicion != -1)
+            {
+                cout << "Producto encontrado:\n";
+                productos[posicion].mostrar();
+            }
+            else
+            {
+                cout << "Producto no encontrado.\n";
+            }
+
+            break;
+        }
+
+        case 9:
+            actualizarProducto(productos);
+            break;
+
+        case 10:
+            eliminarProducto(productos);
+            break;
+
+        case 11:
+            cout << "\nSaliendo del sistema...\n";
             break;
 
         default:
@@ -248,7 +446,7 @@ int main()
                  << endl;
         }
 
-    } while (opcion != 7);
+    } while (opcion != 11);
 
     return 0;
 }
