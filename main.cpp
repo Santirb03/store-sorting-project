@@ -64,6 +64,44 @@ vector<Producto> cargarProductos(
     return productos;
 }
 
+bool guardarProductos(
+    const vector<Producto> &productos,
+    const string &nombreArchivo)
+{
+    ofstream archivo(nombreArchivo);
+
+    if (!archivo.is_open())
+    {
+        cout << "Error: no se pudo abrir el archivo "
+             << nombreArchivo << endl;
+
+        return false;
+    }
+
+    // Escribir encabezados del CSV
+    archivo << "id,nombre,categoria,precio,stock\n";
+
+    // Recorrer y escribir todos los productos
+    for (const Producto &producto : productos)
+    {
+        archivo << producto.getId() << ","
+                << producto.getNombre() << ","
+                << producto.getCategoria() << ","
+                << producto.getPrecio() << ","
+                << producto.getStock() << "\n";
+    }
+
+    archivo.close();
+
+    if (archivo.fail())
+    {
+        cout << "Error al guardar los productos.\n";
+        return false;
+    }
+
+    return true;
+}
+
 void mostrarProductos(
     const vector<Producto> &productos)
 {
@@ -128,7 +166,8 @@ int main()
         cout << "3. Ordenar por nombre" << endl;
         cout << "4. Ordenar por stock" << endl;
         cout << "5. Ordenar por categoria" << endl;
-        cout << "6. Salir" << endl;
+        cout << "6. Guardar productos en CSV" << endl;
+        cout << "7. Salir" << endl;
 
         cout << endl;
         cout << "Selecciona una opcion: ";
@@ -184,6 +223,22 @@ int main()
 
         case 6:
             cout << endl;
+
+            if (guardarProductos(productos, "productos.csv"))
+            {
+                cout << "Productos guardados correctamente."
+                     << endl;
+            }
+            else
+            {
+                cout << "No se pudieron guardar los productos."
+                     << endl;
+            }
+
+            break;
+
+        case 7:
+            cout << endl;
             cout << "Saliendo del programa..." << endl;
             break;
 
@@ -193,7 +248,7 @@ int main()
                  << endl;
         }
 
-    } while (opcion != 6);
+    } while (opcion != 7);
 
     return 0;
 }
