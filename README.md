@@ -74,3 +74,23 @@ El analisis incluye:
 
 Consulta [COMPLEXITY.md](COMPLEXITY.md)
 para ver el analisis detallado.
+
+## Decisiones tecnologicas
+
+El proyecto incluye una justificacion de las
+tecnologias y estructuras utilizadas.
+
+Se explican las razones para seleccionar:
+
+- C++
+- std::vector
+- Merge Sort
+- Archivos CSV
+- Programacion orientada a objetos
+- Organizacion modular
+
+Tambien se presentan ventajas, limitaciones y
+alternativas consideradas.
+
+Consulta [DESIGN_DECISIONS.md](DESIGN_DECISIONS.md)
+para ver el analisis completo.
