@@ -7,6 +7,8 @@
 #include <iomanip>
 #include <stdexcept>
 #include <cmath>
+#include <stack>
+#include <queue>
 
 #include "producto.h"
 #include "sorting.h"
@@ -14,6 +16,18 @@
 #include "inventory.h"
 
 using namespace std;
+
+struct CambioPrecio
+{
+    int id;
+    double precioAnterior;
+};
+
+struct Pedido
+{
+    int id;
+    int cantidad;
+};
 
 // Carga los productos desde un archivo CSV.
 vector<Producto> cargarProductos(
@@ -246,6 +260,7 @@ void mostrarProductos(
 // Ordena los productos usando Merge Sort.
 void ordenarProductos(
     vector<Producto> &productos,
+    IndiceProductos &indice,
     int criterio)
 {
     if (!productos.empty())
@@ -255,20 +270,11 @@ void ordenarProductos(
             0,
             static_cast<int>(productos.size()) - 1,
             criterio);
+        indice.reconstruir(productos);
     }
 }
 
-// Busqueda secuencial por ID.
-// Mejor caso: O(1)
-// Peor caso: O(n)
-// Espacio auxiliar: O(1)
-
-// Agrega un producto despues de verificar su ID.
-// Tiempo: O(n), por la busqueda de duplicados.
-// Espacio adicional: O(1) amortizado,
-// sin contar el crecimiento del inventario.
-
-void agregarProducto(vector<Producto> &productos)
+void agregarProducto(vector<Producto> &productos, IndiceProductos &indice)
 {
     int id;
     int stock;
@@ -284,7 +290,7 @@ void agregarProducto(vector<Producto> &productos)
         return;
     }
 
-    if (buscarProducto(productos, id) != -1)
+    if (indice.buscar(id))
     {
         cout << "Error: ese ID ya existe.\n";
         return;
@@ -319,14 +325,13 @@ void agregarProducto(vector<Producto> &productos)
         return;
     }
 
+    indice.reconstruir(productos);
     cout << "Producto agregado correctamente.\n";
 }
 
-// Actualiza un producto existente por ID.
-// Tiempo: O(n), debido a la busqueda secuencial.
-// Espacio auxiliar: O(1), con campos acotados.
-
-void actualizarProducto(vector<Producto> &productos)
+void actualizarProducto(vector<Producto> &productos,
+                        const IndiceProductos &indice,
+                        std::stack<CambioPrecio> &historial)
 {
     int id;
 
@@ -339,16 +344,16 @@ void actualizarProducto(vector<Producto> &productos)
         return;
     }
 
-    int posicion = buscarProducto(productos, id);
+    const auto posicion = indice.buscar(id);
 
-    if (posicion == -1)
+    if (!posicion)
     {
         cout << "Producto no encontrado.\n";
         return;
     }
 
     cout << "Producto actual:\n";
-    productos[posicion].mostrar();
+    productos[*posicion].mostrar();
 
     string nombre, categoria;
     double precio;
@@ -382,6 +387,8 @@ void actualizarProducto(vector<Producto> &productos)
     Producto actualizado(
         id, nombre, categoria, precio, stock);
 
+    const double precioAnterior = productos[*posicion].getPrecio();
+
     if (!actualizarProductoInventario(
             productos, actualizado))
     {
@@ -389,14 +396,43 @@ void actualizarProducto(vector<Producto> &productos)
         return;
     }
 
+    if (precio != precioAnterior)
+        historial.push({id, precioAnterior});
+
     cout << "Producto actualizado correctamente.\n";
 }
 
-// Elimina un producto del vector.
-// Tiempo: O(n), por la busqueda y el desplazamiento.
-// Espacio auxiliar: O(1).
+void retirarOperaciones(int id, std::stack<CambioPrecio> &historial,
+                        std::queue<Pedido> &pedidos)
+{
+    std::stack<CambioPrecio> cambiosConservados;
+    while (!historial.empty())
+    {
+        if (historial.top().id != id)
+            cambiosConservados.push(historial.top());
+        historial.pop();
+    }
 
-void eliminarProducto(vector<Producto> &productos)
+    // Volver a apilar los cambios conservados restablece su orden original.
+    while (!cambiosConservados.empty())
+    {
+        historial.push(cambiosConservados.top());
+        cambiosConservados.pop();
+    }
+
+    // Cada pedido pendiente se revisa una vez y los vigentes vuelven al final.
+    for (auto pendientes = pedidos.size(); pendientes > 0; --pendientes)
+    {
+        const Pedido pedido = pedidos.front();
+        if (pedido.id != id)
+            pedidos.push(pedido);
+        pedidos.pop();
+    }
+}
+
+void eliminarProducto(vector<Producto> &productos, IndiceProductos &indice,
+                      std::stack<CambioPrecio> &historial,
+                      std::queue<Pedido> &pedidos)
 {
     int id;
 
@@ -409,16 +445,16 @@ void eliminarProducto(vector<Producto> &productos)
         return;
     }
 
-    int posicion = buscarProducto(productos, id);
+    const auto posicion = indice.buscar(id);
 
-    if (posicion == -1)
+    if (!posicion)
     {
         cout << "Producto no encontrado.\n";
         return;
     }
 
     cout << "Producto encontrado:\n";
-    productos[posicion].mostrar();
+    productos[*posicion].mostrar();
 
     string respuesta;
 
@@ -442,7 +478,93 @@ void eliminarProducto(vector<Producto> &productos)
         return;
     }
 
+    indice.reconstruir(productos);
+    retirarOperaciones(id, historial, pedidos);
     cout << "Producto eliminado correctamente.\n";
+}
+
+void deshacerCambioPrecio(vector<Producto> &productos,
+                         const IndiceProductos &indice,
+                         std::stack<CambioPrecio> &historial)
+{
+    if (historial.empty())
+    {
+        cout << "No hay cambios de precio para deshacer.\n";
+        return;
+    }
+
+    const CambioPrecio cambio = historial.top();
+    historial.pop();
+
+    const auto posicion = indice.buscar(cambio.id);
+    if (!posicion)
+    {
+        cout << "Producto no encontrado.\n";
+        return;
+    }
+
+    productos[*posicion].setPrecio(cambio.precioAnterior);
+    cout << "Precio restaurado para el producto " << cambio.id << ".\n";
+    productos[*posicion].mostrar();
+}
+
+void registrarPedido(const IndiceProductos &indice, std::queue<Pedido> &pedidos)
+{
+    int id;
+    int cantidad;
+
+    if (!InputUtils::leerEntero("ID del producto: ", id) || id <= 0)
+    {
+        cout << "Error: el ID debe ser positivo.\n";
+        return;
+    }
+
+    if (!indice.buscar(id))
+    {
+        cout << "Producto no encontrado.\n";
+        return;
+    }
+
+    if (!InputUtils::leerEntero("Cantidad: ", cantidad) || cantidad <= 0)
+    {
+        cout << "Error: la cantidad debe ser positiva.\n";
+        return;
+    }
+
+    pedidos.push({id, cantidad});
+    cout << "Pedido registrado correctamente.\n";
+}
+
+void procesarPedido(vector<Producto> &productos, const IndiceProductos &indice,
+                    std::queue<Pedido> &pedidos)
+{
+    if (pedidos.empty())
+    {
+        cout << "No hay pedidos pendientes.\n";
+        return;
+    }
+
+    const Pedido pedido = pedidos.front();
+    pedidos.pop();
+
+    const auto posicion = indice.buscar(pedido.id);
+    if (!posicion)
+    {
+        cout << "Pedido rechazado: producto no encontrado.\n";
+        return;
+    }
+
+    Producto &producto = productos[*posicion];
+    if (producto.getStock() < pedido.cantidad)
+    {
+        cout << "Pedido rechazado por stock insuficiente para el producto "
+             << pedido.id << ".\n";
+        return;
+    }
+
+    producto.setStock(producto.getStock() - pedido.cantidad);
+    cout << "Pedido procesado para el producto " << pedido.id << ".\n";
+    producto.mostrar();
 }
 
 int main()
@@ -456,6 +578,9 @@ int main()
         return 1;
     }
 
+    IndiceProductos indice(productos);
+    std::stack<CambioPrecio> historial;
+    std::queue<Pedido> pedidos;
     int opcion = 0;
 
     do
@@ -476,6 +601,9 @@ int main()
         cout << "9. Actualizar producto" << endl;
         cout << "10. Eliminar producto" << endl;
         cout << "11. Salir" << endl;
+        cout << "12. Deshacer ultimo cambio de precio" << endl;
+        cout << "13. Registrar pedido" << endl;
+        cout << "14. Procesar pedido mas antiguo" << endl;
 
         cout << endl;
         if (!InputUtils::leerEntero(
@@ -499,7 +627,7 @@ int main()
             break;
 
         case 2:
-            ordenarProductos(productos, 1);
+            ordenarProductos(productos, indice, 1);
 
             cout << endl;
             cout << "Productos ordenados por precio:"
@@ -509,7 +637,7 @@ int main()
             break;
 
         case 3:
-            ordenarProductos(productos, 2);
+            ordenarProductos(productos, indice, 2);
 
             cout << endl;
             cout << "Productos ordenados por nombre:"
@@ -519,7 +647,7 @@ int main()
             break;
 
         case 4:
-            ordenarProductos(productos, 3);
+            ordenarProductos(productos, indice, 3);
 
             cout << endl;
             cout << "Productos ordenados por stock:"
@@ -529,7 +657,7 @@ int main()
             break;
 
         case 5:
-            ordenarProductos(productos, 4);
+            ordenarProductos(productos, indice, 4);
 
             cout << endl;
             cout << "Productos ordenados por categoria:"
@@ -555,7 +683,7 @@ int main()
             break;
 
         case 7:
-            agregarProducto(productos);
+            agregarProducto(productos, indice);
             break;
 
         case 8:
@@ -569,12 +697,12 @@ int main()
                 break;
             }
 
-            int posicion = buscarProducto(productos, id);
+            const auto posicion = indice.buscar(id);
 
-            if (posicion != -1)
+            if (posicion)
             {
                 cout << "Producto encontrado:\n";
-                productos[posicion].mostrar();
+                productos[*posicion].mostrar();
             }
             else
             {
@@ -585,15 +713,27 @@ int main()
         }
 
         case 9:
-            actualizarProducto(productos);
+            actualizarProducto(productos, indice, historial);
             break;
 
         case 10:
-            eliminarProducto(productos);
+            eliminarProducto(productos, indice, historial, pedidos);
             break;
 
         case 11:
             cout << "\nSaliendo del sistema...\n";
+            break;
+
+        case 12:
+            deshacerCambioPrecio(productos, indice, historial);
+            break;
+
+        case 13:
+            registrarPedido(indice, pedidos);
+            break;
+
+        case 14:
+            procesarPedido(productos, indice, pedidos);
             break;
 
         default:

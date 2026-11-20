@@ -59,6 +59,16 @@ int Producto::getStock() const
     return stock;
 }
 
+void Producto::setPrecio(double nuevoPrecio)
+{
+    precio = nuevoPrecio;
+}
+
+void Producto::setStock(int nuevoStock)
+{
+    stock = nuevoStock;
+}
+
 // Mostrar informacion del producto
 void Producto::mostrar() const
 {

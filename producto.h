@@ -33,6 +33,9 @@ public:
     double getPrecio() const;
     int getStock() const;
 
+    void setPrecio(double nuevoPrecio);
+    void setStock(int nuevoStock);
+
     // Mostrar informacion
     void mostrar() const;
 };
