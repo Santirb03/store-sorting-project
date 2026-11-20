@@ -1,0 +1,11 @@
+id,nombre,categoria,precio,stock
+6,Escritorio,Muebles,3499,4
+3,Silla Gamer,Muebles,4299,6
+1,Laptop Lenovo,Electronica,15999,8
+5,Monitor Samsung,Electronica,5499,10
+10,Cafetera,Hogar,1899,12
+4,Teclado Mecanico,Electronica,1399,15
+7,Audifonos Sony,Electronica,2499,18
+9,Mochila,Accesorios,899,20
+2,Mouse Logitech,Electronica,599,25
+8,Lampara LED,Hogar,799,30
